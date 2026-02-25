@@ -1,0 +1,62 @@
+# Build directories
+build/
+cmake/
+*.o
+*.a
+*.so
+*.exe
+device_simulator
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Azure SDK artifacts
+azure-iot-sdk-c/
+
+# Logs
+*.log
+
+# Environment variables (contains secrets)
+.env
+.env.ps1
+*.env
+
+# Connection strings
+connection-strings.txt
+
+# .NET
+bin/
+obj/
+publish/
+*.user
+
+# Azure Functions
+local.settings.json
+
+# Zone.Identifier / DLP metadata
+*:Zone.Identifier
+*:sec.endpointdlp
+
+# Test files
+test_*.jpg
+test_*.png
+*.tmp
