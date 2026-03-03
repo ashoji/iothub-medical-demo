@@ -1,5 +1,27 @@
 # 実装プラン: Azure Functions IoT テレメトリ処理
 
+## 設計方針: ステータス判定のクラウド集約
+
+デバイスシミュレータが送信するテレメトリには `patientStatus` フィールドが含まれるが、Azure Functions ではこれを **参考値 (`originalStatus`) として保存するのみ** とし、**クラウド側で `EvaluateStatus()` により統一的にステータスを再判定** する。
+
+**理由:**
+
+- **判定基準の一元管理**: 閾値をクラウド側で集約的に管理することで、デバイスのファームウェア更新なしに判定基準を変更できる
+- **デバイス非依存**: デバイス側の実装やバージョンに関わらず、一貫した判定基準を適用できる
+- **監査・追跡**: デバイス判定 (`originalStatus`) とクラウド判定 (`cloudStatus`) を両方保持することで、判定基準の変更前後の比較や監査が可能
+
+**処理の流れ:**
+
+```
+デバイス → IoT Hub → Azure Functions
+                         ├─ デバイスの patientStatus → originalStatus として保存（参考値）
+                         ├─ EvaluateStatus() → cloudStatus としてクラウド側で再判定（正）
+                         ├─ cloudStatus が critical → Logic Apps でメール通知
+                         └─ 加工済み JSON → /processed Blob に保存
+```
+
+---
+
 ## 全体スケジュール
 
 | Phase | 内容 | 前提条件 |
@@ -37,14 +59,14 @@ functions-app-csharp/
 | `host.json` | EventHub バッチ設定 (maxEventBatchSize=64) | ✅ |
 | `local.settings.json` | 接続文字列テンプレート | ✅ (値は Phase 2 で設定) |
 
-### 1-3. function_app.py の関数構成
+### 1-3. ProcessTelemetry.cs の関数構成
 
 | 関数名 | 役割 |
 |---|---|
 | `ProcessTelemetry()` | エントリポイント: EventHub バッチ受信 → 処理ループ |
-| `EvaluateStatus()` | クラウド側ステータス再判定 (閾値チェック) |
-| Blob アップロード | /processed コンテナへ加工済み JSON 保存 |
-| Logic Apps 通知 | critical 時の HTTP POST |
+| `EvaluateStatus()` | クラウド側ステータス判定: デバイスの `patientStatus` に依存せず、クラウドの閾値で統一判定 |
+| Blob アップロード | /processed コンテナへ加工済み JSON 保存 (`originalStatus` + `cloudStatus` を両方含む) |
+| Logic Apps 通知 | `cloudStatus` が critical 時の HTTP POST |
 
 ---
 
